@@ -1,0 +1,25 @@
+{
+  "name": "workspace",
+  "version": "0.0.0",
+  "license": "MIT",
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter @workspace/frontend --filter @workspace/backend run dev",
+    "dev:frontend": "pnpm --filter @workspace/frontend run dev",
+    "dev:backend": "pnpm --filter @workspace/backend run dev",
+    "db:push": "pnpm --filter @workspace/backend run db:push",
+    "codegen": "pnpm --filter @workspace/api-spec run codegen",
+    "build": "pnpm run typecheck && pnpm -r --if-present run build",
+    "typecheck:libs": "tsc --build",
+    "typecheck": "pnpm run typecheck:libs && pnpm --filter @workspace/frontend --filter @workspace/backend --if-present run typecheck"
+  },
+  "private": true,
+  "devDependencies": {
+    "prettier": "^3.8.3",
+    "typescript": "~5.9.3"
+  },
+  "dependencies": {
+    "@types/archiver": "^7.0.0",
+    "adm-zip": "^0.5.17",
+    "archiver": "^8.0.0"
+  }
+}

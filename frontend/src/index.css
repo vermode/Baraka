@@ -1,0 +1,154 @@
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+@import "tw-animate-css";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-card-border: hsl(var(--card-border));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-popover-border: hsl(var(--popover-border));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-primary-border: var(--primary-border);
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-secondary-border: var(--secondary-border);
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-muted-border: var(--muted-border);
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-accent-border: var(--accent-border);
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-destructive-border: var(--destructive-border);
+
+  --font-sans: var(--app-font-sans);
+  --font-ar: 'Tajawal', sans-serif;
+  --font-en: 'Inter', sans-serif;
+
+  --color-brand: hsl(171 68% 38%);
+  --color-brand-strong: hsl(43 55% 50%);
+  --color-accent-green: hsl(43 60% 55%);
+}
+
+/* LIGHT MODE */
+:root {
+  --background: 0 0% 100%;
+  --foreground: 171 68% 27%;
+  --border: 171 20% 88%;
+  --card: 0 0% 100%;
+  --card-foreground: 171 68% 27%;
+  --card-border: 171 20% 88%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 171 68% 27%;
+  --popover-border: 171 20% 88%;
+  --primary: 171 68% 31%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 171 20% 95%;
+  --secondary-foreground: 171 68% 27%;
+  --muted: 171 15% 95%;
+  --muted-foreground: 43 55% 40%;
+  --accent: 171 15% 95%;
+  --accent-foreground: 171 68% 27%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --input: 171 20% 88%;
+  --ring: 171 68% 31%;
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: 171 30% 7%;
+  --foreground: 171 60% 60%;
+  --border: 171 20% 16%;
+  --card: 171 25% 10%;
+  --card-foreground: 171 60% 60%;
+  --card-border: 171 20% 16%;
+  --popover: 171 25% 10%;
+  --popover-foreground: 171 60% 60%;
+  --popover-border: 171 20% 16%;
+  --primary: 171 68% 38%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 171 20% 16%;
+  --secondary-foreground: 171 60% 60%;
+  --muted: 171 20% 16%;
+  --muted-foreground: 43 60% 60%;
+  --accent: 171 20% 16%;
+  --accent-foreground: 171 60% 60%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 95%;
+  --input: 171 20% 16%;
+  --ring: 171 68% 38%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  
+  html[lang="ar"] body {
+    font-family: 'Tajawal', sans-serif;
+  }
+  
+  html[lang="en"] body {
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+/* ── Leaflet popup theme overrides ───────────────────────────── */
+.baraka-popup .leaflet-popup-content-wrapper {
+  background: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: 18px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+  padding: 0;
+  overflow: hidden;
+}
+.baraka-popup .leaflet-popup-content {
+  margin: 0;
+  width: auto !important;
+}
+.baraka-popup .leaflet-popup-tip-container {
+  margin-top: -1px;
+}
+.baraka-popup .leaflet-popup-tip {
+  background: hsl(var(--card));
+  box-shadow: none;
+}
+.baraka-popup .leaflet-popup-close-button {
+  display: none;
+}
+/* ──────────────────────────────────────────────────────────── */
+
+.brand-gradient {
+  background: linear-gradient(to right, hsl(171 68% 38%), hsl(43 55% 50%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
