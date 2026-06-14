@@ -20,10 +20,6 @@ export function LiveImpact() {
     <section className="py-16 bg-muted/10 border-y border-border/40" id="impact">
       <div className="container max-w-6xl px-4 sm:px-8 mx-auto">
         <div className="text-center mb-10">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold border border-primary/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-            {isAr ? "أرقام مباشرة" : "Live numbers"}
-          </span>
           <h2 className="text-2xl md:text-3xl font-bold mt-4">
             <span className="brand-gradient">{isAr ? "أثرك الحقيقي" : "Your real impact"}</span>
           </h2>
