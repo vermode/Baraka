@@ -1,8 +1,8 @@
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { Check, HandCoins, LifeBuoy, MapPin, Phone, X } from "lucide-react";
+import { notifyError, notifySuccess } from "@/lib/errors";
+import { Check, HandCoins, KeyRound, LifeBuoy, MapPin, Phone, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -45,7 +45,7 @@ export function HelpRequestsTab() {
         data: { status, adminNote: note || undefined },
       });
       qc.invalidateQueries({ queryKey: getListHelpRequestsQueryKey() });
-      toast.success(
+      notifySuccess(
         status === "approved"
           ? isAr
             ? "تمت الموافقة"
@@ -54,8 +54,8 @@ export function HelpRequestsTab() {
             ? "تم الرفض"
             : "Rejected",
       );
-    } catch {
-      toast.error(isAr ? "فشل" : "Failed");
+    } catch (err) {
+      notifyError(err, lang);
     }
   }
 
@@ -106,6 +106,12 @@ export function HelpRequestsTab() {
                 {r.adminNote && (
                   <p className="text-xs mt-2 italic text-muted-foreground bg-muted/30 rounded p-2">
                     {isAr ? "ملاحظة المشرف:" : "Admin note:"} {r.adminNote}
+                  </p>
+                )}
+                {r.otp && (
+                  <p className="text-xs mt-2 inline-flex items-center gap-1.5 font-mono bg-primary/10 text-primary rounded px-2 py-1">
+                    <KeyRound className="h-3 w-3" />
+                    {isAr ? "رمز التتبع:" : "Tracking code:"} {r.otp}
                   </p>
                 )}
                 <div className="text-[10px] text-muted-foreground/70 mt-2 font-en">

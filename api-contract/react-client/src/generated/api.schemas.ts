@@ -37,11 +37,12 @@ export interface SignupInput {
   /** @maxLength 255 */
   email: string;
   /**
-     * @minLength 10
+     * @minLength 8
      * @maxLength 200
+     * @pattern ^(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,200}$
      */
   password: string;
-  /** @maxLength 32 */
+  /** @pattern ^(077|078|079)[0-9]{7}$ */
   phone?: string;
   accountType?: SignupInputAccountType;
 }
@@ -164,6 +165,8 @@ export interface Donation {
   organizationName?: string | null;
   /** @nullable */
   beneficiaryId?: number | null;
+  /** @nullable */
+  helpRequestId?: number | null;
   amount: number;
   /** @nullable */
   message?: string | null;
@@ -180,6 +183,11 @@ export interface Donation {
   cardName?: string | null;
   /** @nullable */
   itemDetails?: string | null;
+  /** @nullable */
+  otp?: string | null;
+  deliveredConfirmed: boolean;
+  /** @nullable */
+  deliveredConfirmedAt?: string | null;
   createdAt: string;
 }
 
@@ -216,6 +224,7 @@ export interface DonationInput {
   amount: number;
   organizationId?: number;
   beneficiaryId?: number;
+  helpRequestId?: number;
   message?: string;
   donationType: DonationInputDonationType;
   paymentMethod?: DonationInputPaymentMethod;
@@ -269,6 +278,8 @@ export interface HelpRequest {
   description: string;
   status: string;
   /** @nullable */
+  otp?: string | null;
+  /** @nullable */
   adminNote?: string | null;
   /** @nullable */
   reviewedBy?: number | null;
@@ -277,10 +288,19 @@ export interface HelpRequest {
   createdAt: string;
 }
 
+export interface ApprovedHelpRequest {
+  id: number;
+  name: string;
+  governorate: string;
+  aidType: string;
+  description: string;
+  createdAt: string;
+}
+
 export interface HelpRequestInput {
   /** @minLength 2 */
   name: string;
-  /** @minLength 7 */
+  /** @pattern ^(077|078|079)[0-9]{7}$ */
   phone: string;
   /** @minLength 1 */
   governorate: string;
@@ -288,6 +308,57 @@ export interface HelpRequestInput {
   aidType: string;
   /** @minLength 5 */
   description: string;
+}
+
+export interface ConfirmDeliveryInput {
+  donationId: number;
+}
+
+export interface DonationTracking {
+  id: number;
+  amount: number;
+  donationType: string;
+  /** @nullable */
+  message?: string | null;
+  /** @nullable */
+  organizationName?: string | null;
+  /** @nullable */
+  helpRequestId?: number | null;
+  /** @nullable */
+  helpRequestName?: string | null;
+  deliveredConfirmed: boolean;
+  /** @nullable */
+  deliveredConfirmedAt?: string | null;
+  createdAt: string;
+}
+
+export interface TrackedDonation {
+  id: number;
+  /** @nullable */
+  donorName?: string | null;
+  amount: number;
+  donationType: string;
+  /** @nullable */
+  message?: string | null;
+  deliveredConfirmed: boolean;
+  /** @nullable */
+  deliveredConfirmedAt?: string | null;
+  createdAt: string;
+}
+
+export interface HelpRequestTracking {
+  id: number;
+  name: string;
+  governorate: string;
+  aidType: string;
+  description: string;
+  status: string;
+  createdAt: string;
+  donations: TrackedDonation[];
+}
+
+export interface LinkHelpRequestInput {
+  helpRequestId: number;
 }
 
 export interface RegistrationRequest {

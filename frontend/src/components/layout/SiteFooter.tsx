@@ -21,7 +21,7 @@ export function SiteFooter() {
           <div className="mt-3 w-full">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground mb-2 justify-center md:justify-start">
               <Users className="h-4 w-4 text-primary" />
-              {isAr ? "المشرفون على المشروع" : "Project Supervisors"}
+              {isAr ? "المشرف على المشروع" : "Project Supervisor"}
             </div>
             <ul className="text-xs text-muted-foreground space-y-1">
               {SITE.supervisors.map((s) => (

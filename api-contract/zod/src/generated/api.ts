@@ -20,18 +20,19 @@ export const signupBodyNameMax = 120;
 
 export const signupBodyEmailMax = 255;
 
-export const signupBodyPasswordMin = 10;
+export const signupBodyPasswordMin = 8;
 export const signupBodyPasswordMax = 200;
 
-export const signupBodyPhoneMax = 32;
 
+export const signupBodyPasswordRegExp = new RegExp('^(?=.\*[A-Z])(?=.\*[0-9])(?=.\*[^A-Za-z0-9]).{8,200}$');
+export const signupBodyPhoneRegExp = new RegExp('^(077|078|079)[0-9]{7}$');
 
 
 export const SignupBody = zod.object({
   "name": zod.string().min(1).max(signupBodyNameMax),
   "email": zod.string().email().max(signupBodyEmailMax),
-  "password": zod.string().min(signupBodyPasswordMin).max(signupBodyPasswordMax),
-  "phone": zod.string().max(signupBodyPhoneMax).optional(),
+  "password": zod.string().min(signupBodyPasswordMin).max(signupBodyPasswordMax).regex(signupBodyPasswordRegExp),
+  "phone": zod.string().regex(signupBodyPhoneRegExp).optional(),
   "accountType": zod.enum(['donor', 'charity']).optional()
 })
 
@@ -253,6 +254,7 @@ export const ListDonationsResponseItem = zod.object({
   "organizationId": zod.number().nullish(),
   "organizationName": zod.string().nullish(),
   "beneficiaryId": zod.number().nullish(),
+  "helpRequestId": zod.number().nullish(),
   "amount": zod.number(),
   "message": zod.string().nullish(),
   "donationType": zod.string(),
@@ -262,6 +264,9 @@ export const ListDonationsResponseItem = zod.object({
   "cardLast4": zod.string().nullish(),
   "cardName": zod.string().nullish(),
   "itemDetails": zod.string().nullish(),
+  "otp": zod.string().nullish(),
+  "deliveredConfirmed": zod.boolean(),
+  "deliveredConfirmedAt": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date()
 })
 export const ListDonationsResponse = zod.array(ListDonationsResponseItem)
@@ -278,6 +283,7 @@ export const CreateDonationBody = zod.object({
   "amount": zod.number().min(createDonationBodyAmountMin),
   "organizationId": zod.number().optional(),
   "beneficiaryId": zod.number().optional(),
+  "helpRequestId": zod.number().optional(),
   "message": zod.string().optional(),
   "donationType": zod.enum(['money', 'food', 'clothes', 'other']),
   "paymentMethod": zod.enum(['card', 'wallet', 'cash']).optional(),
@@ -296,6 +302,7 @@ export const ListMyDonationsResponseItem = zod.object({
   "organizationId": zod.number().nullish(),
   "organizationName": zod.string().nullish(),
   "beneficiaryId": zod.number().nullish(),
+  "helpRequestId": zod.number().nullish(),
   "amount": zod.number(),
   "message": zod.string().nullish(),
   "donationType": zod.string(),
@@ -305,9 +312,44 @@ export const ListMyDonationsResponseItem = zod.object({
   "cardLast4": zod.string().nullish(),
   "cardName": zod.string().nullish(),
   "itemDetails": zod.string().nullish(),
+  "otp": zod.string().nullish(),
+  "deliveredConfirmed": zod.boolean(),
+  "deliveredConfirmedAt": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date()
 })
 export const ListMyDonationsResponse = zod.array(ListMyDonationsResponseItem)
+
+
+export const LinkDonationHelpRequestParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const LinkDonationHelpRequestBody = zod.object({
+  "helpRequestId": zod.number()
+})
+
+export const LinkDonationHelpRequestResponse = zod.object({
+  "id": zod.number(),
+  "donorId": zod.number(),
+  "donorName": zod.string().nullish(),
+  "organizationId": zod.number().nullish(),
+  "organizationName": zod.string().nullish(),
+  "beneficiaryId": zod.number().nullish(),
+  "helpRequestId": zod.number().nullish(),
+  "amount": zod.number(),
+  "message": zod.string().nullish(),
+  "donationType": zod.string(),
+  "paymentMethod": zod.string().nullish(),
+  "walletProvider": zod.string().nullish(),
+  "walletPhone": zod.string().nullish(),
+  "cardLast4": zod.string().nullish(),
+  "cardName": zod.string().nullish(),
+  "itemDetails": zod.string().nullish(),
+  "otp": zod.string().nullish(),
+  "deliveredConfirmed": zod.boolean(),
+  "deliveredConfirmedAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date()
+})
 
 
 export const ListAnnouncementsResponseItem = zod.object({
@@ -389,6 +431,7 @@ export const ListHelpRequestsResponseItem = zod.object({
   "aidType": zod.string(),
   "description": zod.string(),
   "status": zod.string(),
+  "otp": zod.string().nullish(),
   "adminNote": zod.string().nullish(),
   "reviewedBy": zod.number().nullish(),
   "reviewedAt": zod.coerce.date().nullish(),
@@ -399,8 +442,7 @@ export const ListHelpRequestsResponse = zod.array(ListHelpRequestsResponseItem)
 
 export const createHelpRequestBodyNameMin = 2;
 
-export const createHelpRequestBodyPhoneMin = 7;
-
+export const createHelpRequestBodyPhoneRegExp = new RegExp('^(077|078|079)[0-9]{7}$');
 
 
 export const createHelpRequestBodyDescriptionMin = 5;
@@ -409,11 +451,22 @@ export const createHelpRequestBodyDescriptionMin = 5;
 
 export const CreateHelpRequestBody = zod.object({
   "name": zod.string().min(createHelpRequestBodyNameMin),
-  "phone": zod.string().min(createHelpRequestBodyPhoneMin),
+  "phone": zod.string().regex(createHelpRequestBodyPhoneRegExp),
   "governorate": zod.string().min(1),
   "aidType": zod.string().min(1),
   "description": zod.string().min(createHelpRequestBodyDescriptionMin)
 })
+
+
+export const ListApprovedHelpRequestsResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "governorate": zod.string(),
+  "aidType": zod.string(),
+  "description": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+export const ListApprovedHelpRequestsResponse = zod.array(ListApprovedHelpRequestsResponseItem)
 
 
 export const UpdateHelpRequestParams = zod.object({
@@ -433,10 +486,92 @@ export const UpdateHelpRequestResponse = zod.object({
   "aidType": zod.string(),
   "description": zod.string(),
   "status": zod.string(),
+  "otp": zod.string().nullish(),
   "adminNote": zod.string().nullish(),
   "reviewedBy": zod.number().nullish(),
   "reviewedAt": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * Public, OTP-gated read-only status of a single donation.
+ */
+export const TrackDonationParams = zod.object({
+  "otp": zod.coerce.string()
+})
+
+export const TrackDonationResponse = zod.object({
+  "id": zod.number(),
+  "amount": zod.number(),
+  "donationType": zod.string(),
+  "message": zod.string().nullish(),
+  "organizationName": zod.string().nullish(),
+  "helpRequestId": zod.number().nullish(),
+  "helpRequestName": zod.string().nullish(),
+  "deliveredConfirmed": zod.boolean(),
+  "deliveredConfirmedAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * Public, OTP-gated view of a help request and the donations made to it.
+ */
+export const TrackHelpRequestParams = zod.object({
+  "otp": zod.coerce.string()
+})
+
+export const TrackHelpRequestResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "governorate": zod.string(),
+  "aidType": zod.string(),
+  "description": zod.string(),
+  "status": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "donations": zod.array(zod.object({
+  "id": zod.number(),
+  "donorName": zod.string().nullish(),
+  "amount": zod.number(),
+  "donationType": zod.string(),
+  "message": zod.string().nullish(),
+  "deliveredConfirmed": zod.boolean(),
+  "deliveredConfirmedAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * The help-request owner confirms (via their OTP) that a specific donation was received.
+ */
+export const ConfirmDonationReceivedParams = zod.object({
+  "otp": zod.coerce.string()
+})
+
+export const ConfirmDonationReceivedBody = zod.object({
+  "donationId": zod.number()
+})
+
+export const ConfirmDonationReceivedResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "governorate": zod.string(),
+  "aidType": zod.string(),
+  "description": zod.string(),
+  "status": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "donations": zod.array(zod.object({
+  "id": zod.number(),
+  "donorName": zod.string().nullish(),
+  "amount": zod.number(),
+  "donationType": zod.string(),
+  "message": zod.string().nullish(),
+  "deliveredConfirmed": zod.boolean(),
+  "deliveredConfirmedAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date()
+}))
 })
 
 

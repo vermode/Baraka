@@ -4,7 +4,7 @@ import { Building2, Star, ShieldCheck, Clock, CheckCircle2 } from "lucide-react"
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { toast } from "sonner";
+import { notifyError, notifySuccess } from "@/lib/errors";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -58,11 +58,11 @@ export function RegisterAssociation() {
           email: values.email || undefined,
         },
       });
-      toast.success(t('reg.successToast'));
+      notifySuccess(t('reg.successToast'));
       form.reset();
       setSubmitted(true);
-    } catch {
-      toast.error(isAr ? "تعذّر إرسال الطلب، حاول مرة أخرى" : "Could not submit, please try again");
+    } catch (err) {
+      notifyError(err, lang);
     }
   }
 

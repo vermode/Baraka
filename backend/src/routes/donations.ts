@@ -8,8 +8,13 @@ import {
   beneficiariesTable,
   notificationsTable,
 } from "../db";
-import { CreateDonationBody } from "@workspace/api-zod";
+import {
+  CreateDonationBody,
+  LinkDonationHelpRequestBody,
+  LinkDonationHelpRequestParams,
+} from "@workspace/api-zod";
 import { requireAuth, requireAdmin } from "../middlewares/auth";
+import { generateOtp } from "../lib/otp";
 
 const router: IRouter = Router();
 
@@ -20,6 +25,7 @@ const donationColumns = {
   organizationId: donationsTable.organizationId,
   organizationName: organizationsTable.name,
   beneficiaryId: donationsTable.beneficiaryId,
+  helpRequestId: donationsTable.helpRequestId,
   amount: donationsTable.amount,
   message: donationsTable.message,
   donationType: donationsTable.donationType,
@@ -29,6 +35,9 @@ const donationColumns = {
   cardLast4: donationsTable.cardLast4,
   cardName: donationsTable.cardName,
   itemDetails: donationsTable.itemDetails,
+  otp: donationsTable.otp,
+  deliveredConfirmed: donationsTable.deliveredConfirmed,
+  deliveredConfirmedAt: donationsTable.deliveredConfirmedAt,
   createdAt: donationsTable.createdAt,
 };
 
@@ -93,6 +102,7 @@ router.post("/donations", requireAuth, async (req, res): Promise<void> => {
         amount: data.amount,
         organizationId: data.organizationId ?? null,
         beneficiaryId: data.beneficiaryId ?? null,
+        helpRequestId: data.helpRequestId ?? null,
         message: data.message ?? null,
         donationType: data.donationType,
         paymentMethod: data.paymentMethod ?? null,
@@ -101,6 +111,7 @@ router.post("/donations", requireAuth, async (req, res): Promise<void> => {
         cardLast4: data.cardLast4 ?? null,
         cardName: data.cardName ?? null,
         itemDetails: data.itemDetails ?? null,
+        otp: generateOtp(),
       })
       .$returningId();
     const [donation] = await tx
@@ -129,8 +140,8 @@ router.post("/donations", requireAuth, async (req, res): Promise<void> => {
 
     const bodyText =
       donation.donationType === "money"
-        ? `تم استلام تبرعك بمبلغ ${donation.amount} دينار${orgName ? ` لصالح ${orgName}` : ""}.`
-        : `تم استلام تبرعك العيني${orgName ? ` لصالح ${orgName}` : ""}، سنتواصل معك قريباً.`;
+        ? `تم استلام تبرعك بمبلغ ${donation.amount} دينار${orgName ? ` لصالح ${orgName}` : ""}. رمز التتبع: ${donation.otp}`
+        : `تم استلام تبرعك العيني${orgName ? ` لصالح ${orgName}` : ""}، سنتواصل معك قريباً. رمز التتبع: ${donation.otp}`;
 
     await tx.insert(notificationsTable).values({
       userId: req.user!.id,
@@ -148,6 +159,7 @@ router.post("/donations", requireAuth, async (req, res): Promise<void> => {
     organizationId: donation.organizationId,
     organizationName: orgName,
     beneficiaryId: donation.beneficiaryId,
+    helpRequestId: donation.helpRequestId,
     amount: donation.amount,
     message: donation.message,
     donationType: donation.donationType,
@@ -157,8 +169,47 @@ router.post("/donations", requireAuth, async (req, res): Promise<void> => {
     cardLast4: donation.cardLast4,
     cardName: donation.cardName,
     itemDetails: donation.itemDetails,
+    otp: donation.otp,
+    deliveredConfirmed: donation.deliveredConfirmed,
+    deliveredConfirmedAt: donation.deliveredConfirmedAt,
     createdAt: donation.createdAt,
   });
 });
+
+// Admin links an existing donation to a help request.
+router.patch(
+  "/donations/:id/link-help-request",
+  requireAdmin,
+  async (req, res): Promise<void> => {
+    const p = LinkDonationHelpRequestParams.safeParse(req.params);
+    const b = LinkDonationHelpRequestBody.safeParse(req.body);
+    if (!p.success || !b.success) {
+      res.status(400).json({ error: (p.success ? b : p).error!.message });
+      return;
+    }
+    const [donation] = await db
+      .select()
+      .from(donationsTable)
+      .where(eq(donationsTable.id, p.data.id));
+    if (!donation) {
+      res.status(404).json({ error: "Donation not found" });
+      return;
+    }
+    await db
+      .update(donationsTable)
+      .set({ helpRequestId: b.data.helpRequestId })
+      .where(eq(donationsTable.id, p.data.id));
+    const [row] = await db
+      .select(donationColumns)
+      .from(donationsTable)
+      .leftJoin(usersTable, eq(donationsTable.donorId, usersTable.id))
+      .leftJoin(
+        organizationsTable,
+        eq(donationsTable.organizationId, organizationsTable.id),
+      )
+      .where(eq(donationsTable.id, p.data.id));
+    res.json(row);
+  },
+);
 
 export default router;

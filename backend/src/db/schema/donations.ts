@@ -4,12 +4,14 @@ import {
   text,
   timestamp,
   varchar,
+  boolean,
 } from "drizzle-orm/mysql-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
 import { organizationsTable } from "./organizations";
 import { beneficiariesTable } from "./beneficiaries";
+import { helpRequestsTable } from "./help_requests";
 
 export const donationsTable = mysqlTable("donations", {
   id: int("id").autoincrement().primaryKey(),
@@ -20,6 +22,9 @@ export const donationsTable = mysqlTable("donations", {
     onDelete: "set null",
   }),
   beneficiaryId: int("beneficiary_id").references(() => beneficiariesTable.id, {
+    onDelete: "set null",
+  }),
+  helpRequestId: int("help_request_id").references(() => helpRequestsTable.id, {
     onDelete: "set null",
   }),
   amount: int("amount").notNull(),
@@ -36,6 +41,10 @@ export const donationsTable = mysqlTable("donations", {
   cardName: varchar("card_name", { length: 120 }),
   // free-text description for non-monetary donations (items, qty, pickup address...)
   itemDetails: text("item_details"),
+  // Tracking OTP, generated when the donation is created.
+  otp: varchar("otp", { length: 8 }),
+  deliveredConfirmed: boolean("delivered_confirmed").notNull().default(false),
+  deliveredConfirmedAt: timestamp("delivered_confirmed_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

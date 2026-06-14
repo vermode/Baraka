@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { notifyError, notifySuccess } from "@/lib/errors";
 import { Megaphone, Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -53,11 +53,11 @@ export function AnnouncementsTab() {
       }
       await createAnn.mutateAsync({ data: payload as never });
       qc.invalidateQueries({ queryKey: getListAnnouncementsQueryKey() });
-      toast.success(isAr ? "تم النشر" : "Published");
+      notifySuccess(isAr ? "تم النشر" : "Published");
       setDialogOpen(false);
       setForm(EMPTY_FORM);
-    } catch {
-      toast.error(isAr ? "فشل" : "Failed");
+    } catch (err) {
+      notifyError(err, lang);
     }
   }
 
@@ -65,7 +65,7 @@ export function AnnouncementsTab() {
     if (!confirm(isAr ? "حذف هذا الإعلان؟" : "Delete?")) return;
     await deleteAnn.mutateAsync({ id });
     qc.invalidateQueries({ queryKey: getListAnnouncementsQueryKey() });
-    toast.success(isAr ? "تم الحذف" : "Deleted");
+    notifySuccess(isAr ? "تم الحذف" : "Deleted");
   }
 
   return (

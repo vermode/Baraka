@@ -17,6 +17,8 @@ export const helpRequestsTable = mysqlTable("help_requests", {
   aidType: varchar("aid_type", { length: 32 }).notNull(),
   description: text("description").notNull(),
   status: varchar("status", { length: 16 }).notNull().default("pending"),
+  // Tracking OTP, issued when the request is submitted.
+  otp: varchar("otp", { length: 8 }),
   adminNote: text("admin_note"),
   reviewedBy: int("reviewed_by").references(() => usersTable.id, {
     onDelete: "set null",

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { notifyError, notifySuccess } from "@/lib/errors";
 import { ArrowLeft, ArrowRight, HandCoins, Heart } from "lucide-react";
 
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -33,7 +34,9 @@ import type {
 } from "./donate/types";
 
 interface Props {
-  org: Organization;
+  /** Donation target: an organization OR an approved help request. */
+  org?: Organization;
+  helpRequest?: { id: number; name: string };
   /** Custom trigger element. Falls back to a default "Donate" button. */
   trigger?: React.ReactNode;
 }
@@ -46,11 +49,12 @@ interface Props {
  * The step UIs live in `./donate/`; this component owns the form state and
  * the mutation that posts the donation to the API.
  */
-export function DonateDialog({ org, trigger }: Props) {
+export function DonateDialog({ org, helpRequest, trigger }: Props) {
   const { lang } = useLanguage();
   const isAr = lang === "ar";
   const qc = useQueryClient();
   const mutation = useCreateDonation();
+  const targetName = org?.name ?? helpRequest?.name ?? "";
 
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
@@ -124,9 +128,10 @@ export function DonateDialog({ org, trigger }: Props) {
         : undefined;
 
     try {
-      await mutation.mutateAsync({
+      const result = await mutation.mutateAsync({
         data: {
-          organizationId: org.id,
+          organizationId: org?.id,
+          helpRequestId: helpRequest?.id,
           amount: isMoney ? amount : 0,
           message: message || undefined,
           donationType,
@@ -142,14 +147,19 @@ export function DonateDialog({ org, trigger }: Props) {
         },
       });
 
-      toast.success(
-        isMoney
+      const otpNote = result.otp
+        ? isAr
+          ? ` رمز التتبع: ${result.otp}`
+          : ` Tracking code: ${result.otp}`
+        : "";
+      notifySuccess(
+        (isMoney
           ? isAr
             ? `شكراً لتبرعك بمبلغ ${amount} دينار`
             : `Thanks for your ${amount} JOD donation`
           : isAr
             ? "شكراً لتبرعك العيني، سنتواصل معك قريباً"
-            : "Thanks for your in-kind donation — we'll be in touch",
+            : "Thanks for your in-kind donation — we'll be in touch") + otpNote,
       );
 
       qc.invalidateQueries({ queryKey: getListNotificationsQueryKey() });
@@ -157,8 +167,8 @@ export function DonateDialog({ org, trigger }: Props) {
       qc.invalidateQueries({ queryKey: getGetStatsQueryKey() });
       setOpen(false);
       reset();
-    } catch {
-      toast.error(isAr ? "فشل التبرع" : "Donation failed");
+    } catch (err) {
+      notifyError(err, lang);
     }
   }
 
@@ -187,7 +197,7 @@ export function DonateDialog({ org, trigger }: Props) {
           <Button
             size="sm"
             className="bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5"
-            data-testid={`btn-donate-${org.id}`}
+            data-testid={`btn-donate-${org?.id ?? `req-${helpRequest?.id}`}`}
           >
             <Heart className="h-3.5 w-3.5" />
             {isAr ? "تبرّع" : "Donate"}
@@ -201,7 +211,7 @@ export function DonateDialog({ org, trigger }: Props) {
       >
         <DialogHeader>
           <DialogTitle>
-            {isAr ? "التبرع لـ" : "Donate to"} {org.name}
+            {isAr ? "التبرع لـ" : "Donate to"} {targetName}
           </DialogTitle>
           <DialogDescription>
             {step === 1

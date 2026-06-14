@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/hooks/useAuth";
-import { AppHeader } from "@/components/layout/AppHeader";
+import { Header } from "@/components/layout/Header";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { ChatBot } from "@/components/ChatBot";
 import { DonateDialog } from "@/components/DonateDialog";
@@ -10,17 +10,19 @@ import {
   useListAnnouncements,
   useListNotifications,
   useListMyDonations,
+  useListApprovedHelpRequests,
   useGetStats,
   useMarkNotificationRead,
   getListNotificationsQueryKey,
 } from "@workspace/api-client-react";
+import { Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
 import {
   Bell, BellRing, HandCoins, ShieldCheck, MapPin, Megaphone, AlertTriangle,
-  Building2, TrendingUp, Users, BadgeCheck, Search,
+  Building2, TrendingUp, Users, BadgeCheck, Search, LifeBuoy, KeyRound,
 } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
@@ -59,6 +61,7 @@ export default function Dashboard() {
   const announcements = useListAnnouncements();
   const notifications = useListNotifications({ query: { enabled: !!user } as any });
   const myDonations = useListMyDonations({ query: { enabled: !!user } as any });
+  const approvedRequests = useListApprovedHelpRequests({ query: { enabled: !!user } as any });
   const stats = useGetStats();
   const markRead = useMarkNotificationRead();
 
@@ -90,7 +93,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans" dir={isAr ? "rtl" : "ltr"}>
-      <AppHeader />
+      <Header />
 
       <main className="flex-1">
         {/* Welcome + stats */}
@@ -172,6 +175,37 @@ export default function Dashboard() {
                 {!orgs.isLoading && filteredOrgs.length === 0 && (
                   <div className="p-8 text-center text-muted-foreground text-sm">{isAr ? "لا توجد نتائج" : "No results"}</div>
                 )}
+              </div>
+            </div>
+
+            {/* Approved help requests — donate directly to a person in need */}
+            <div className="rounded-2xl border border-border bg-card">
+              <div className="p-5 border-b border-border flex items-center gap-2">
+                <LifeBuoy className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-bold">{isAr ? "حالات بحاجة للمساعدة" : "People who need help"}</h2>
+              </div>
+              <div className="divide-y divide-border max-h-80 overflow-y-auto">
+                {(approvedRequests.data ?? []).length === 0 && (
+                  <div className="p-5 text-center text-muted-foreground text-sm">{isAr ? "لا توجد حالات حالياً" : "No cases right now"}</div>
+                )}
+                {(approvedRequests.data ?? []).map((r) => (
+                  <div key={r.id} className="p-5 flex items-start gap-4 hover:bg-muted/30">
+                    <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                      <LifeBuoy className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-bold truncate">{r.name}</h3>
+                      </div>
+                      <p className="text-sm text-muted-foreground line-clamp-2">{r.description}</p>
+                      <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                        <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" /> {r.governorate}</span>
+                        <span className="px-2 py-0.5 rounded-full bg-muted/50">{r.aidType}</span>
+                      </div>
+                    </div>
+                    <DonateDialog helpRequest={{ id: r.id, name: r.name }} />
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -277,12 +311,38 @@ export default function Dashboard() {
                   <div className="p-4 text-sm text-muted-foreground text-center">{isAr ? "لم تتبرع بعد" : "No donations yet"}</div>
                 )}
                 {(myDonations.data ?? []).map((d) => (
-                  <div key={d.id} className="p-3 flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold truncate">{d.organizationName ?? (isAr ? "تبرع عام" : "General donation")}</div>
-                      <div className="text-xs text-muted-foreground">{new Date(d.createdAt).toLocaleDateString(isAr ? "ar" : "en")}</div>
+                  <div key={d.id} className="p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold truncate">{d.organizationName ?? (isAr ? "تبرع عام" : "General donation")}</div>
+                        <div className="text-xs text-muted-foreground">{new Date(d.createdAt).toLocaleDateString(isAr ? "ar" : "en")}</div>
+                      </div>
+                      <div className="text-sm font-bold text-primary shrink-0">{d.amount} {isAr ? "د.أ" : "JOD"}</div>
                     </div>
-                    <div className="text-sm font-bold text-primary shrink-0">{d.amount} {isAr ? "د.أ" : "JOD"}</div>
+                    {d.otp && (
+                      <div className="mt-2 text-[11px] font-mono inline-flex items-center gap-1.5 bg-primary/10 text-primary rounded px-2 py-1">
+                        {isAr ? "رمز التتبع:" : "Tracking code:"} {d.otp}
+                      </div>
+                    )}
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      {d.deliveredConfirmed ? (
+                        <span className="text-[11px] text-green-600">
+                          {isAr ? "✓ أكّد المستفيد الاستلام" : "✓ Recipient confirmed receipt"}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-amber-600">
+                          {isAr ? "⏳ بانتظار تأكيد الاستلام" : "⏳ Awaiting receipt confirmation"}
+                        </span>
+                      )}
+                      {d.otp && (
+                        <Link href={`/track?type=donation&otp=${d.otp}`}>
+                          <button className="text-[11px] inline-flex items-center gap-1 text-primary hover:underline" data-testid={`link-track-${d.id}`}>
+                            <KeyRound className="h-3 w-3" />
+                            {isAr ? "تتبع" : "Track"}
+                          </button>
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

@@ -276,6 +276,29 @@ paths:
                 items:
                   $ref: "#/components/schemas/Donation"
 
+  /donations/{id}/link-help-request:
+    patch:
+      operationId: linkDonationHelpRequest
+      tags: [donations]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LinkHelpRequestInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Donation"
+
   /announcements:
     get:
       operationId: listAnnouncements
@@ -407,6 +430,20 @@ paths:
               schema:
                 $ref: "#/components/schemas/HelpRequest"
 
+  /help-requests/approved:
+    get:
+      operationId: listApprovedHelpRequests
+      tags: [help-requests]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ApprovedHelpRequest"
+
   /help-requests/{id}:
     patch:
       operationId: updateHelpRequest
@@ -429,6 +466,66 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HelpRequest"
+
+  /track/donations/{otp}:
+    get:
+      operationId: trackDonation
+      tags: [track]
+      description: Public, OTP-gated read-only status of a single donation.
+      parameters:
+        - in: path
+          name: otp
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DonationTracking"
+
+  /track/help-requests/{otp}:
+    get:
+      operationId: trackHelpRequest
+      tags: [track]
+      description: Public, OTP-gated view of a help request and the donations made to it.
+      parameters:
+        - in: path
+          name: otp
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HelpRequestTracking"
+
+  /track/help-requests/{otp}/confirm-delivery:
+    post:
+      operationId: confirmDonationReceived
+      tags: [track]
+      description: The help-request owner confirms (via their OTP) that a specific donation was received.
+      parameters:
+        - in: path
+          name: otp
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmDeliveryInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HelpRequestTracking"
 
   /registration-requests:
     get:
@@ -520,11 +617,17 @@ components:
       required: [name, email, password]
       properties:
         name: { type: string, minLength: 1, maxLength: 120 }
+        # Known-provider restriction for donors is enforced in the auth route
+        # (it depends on accountType, which a static pattern can't express).
         email: { type: string, format: email, maxLength: 255 }
-        # Minimum 10 chars (NIST 800-63B recommends >=8; we use 10 for charity-data context).
-        # No complexity requirement — length beats complexity per OWASP guidance.
-        password: { type: string, minLength: 10, maxLength: 200 }
-        phone: { type: string, maxLength: 32 }
+        # Complexity policy: >=8 chars, at least one uppercase, one digit, one special.
+        password:
+          type: string
+          minLength: 8
+          maxLength: 200
+          pattern: "^(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,200}$"
+        # Jordanian mobile: digits only, starts with 077/078/079, exactly 10 digits.
+        phone: { type: string, pattern: "^(077|078|079)[0-9]{7}$" }
         accountType: { type: string, enum: [donor, charity] }
 
     LoginInput:
@@ -626,7 +729,7 @@ components:
 
     Donation:
       type: object
-      required: [id, donorId, amount, donationType, createdAt]
+      required: [id, donorId, amount, donationType, deliveredConfirmed, createdAt]
       properties:
         id: { type: integer }
         donorId: { type: integer }
@@ -634,6 +737,7 @@ components:
         organizationId: { type: ["integer", "null"] }
         organizationName: { type: ["string", "null"] }
         beneficiaryId: { type: ["integer", "null"] }
+        helpRequestId: { type: ["integer", "null"] }
         amount: { type: integer }
         message: { type: ["string", "null"] }
         donationType: { type: string }
@@ -643,6 +747,10 @@ components:
         cardLast4: { type: ["string", "null"] }
         cardName: { type: ["string", "null"] }
         itemDetails: { type: ["string", "null"] }
+        # Tracking OTP, generated when the donation is created.
+        otp: { type: ["string", "null"] }
+        deliveredConfirmed: { type: boolean }
+        deliveredConfirmedAt: { type: ["string", "null"], format: date-time }
         createdAt: { type: string, format: date-time }
 
     DonationInput:
@@ -652,6 +760,7 @@ components:
         amount: { type: integer, minimum: 0 }
         organizationId: { type: integer }
         beneficiaryId: { type: integer }
+        helpRequestId: { type: integer }
         message: { type: string }
         donationType: { type: string, enum: [money, food, clothes, other] }
         paymentMethod: { type: string, enum: [card, wallet, cash] }
@@ -704,9 +813,22 @@ components:
         aidType: { type: string }
         description: { type: string }
         status: { type: string }
+        # Tracking OTP, issued when the request is submitted.
+        otp: { type: ["string", "null"] }
         adminNote: { type: ["string", "null"] }
         reviewedBy: { type: ["integer", "null"] }
         reviewedAt: { type: ["string", "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+
+    ApprovedHelpRequest:
+      type: object
+      required: [id, name, governorate, aidType, description, createdAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        governorate: { type: string }
+        aidType: { type: string }
+        description: { type: string }
         createdAt: { type: string, format: date-time }
 
     HelpRequestInput:
@@ -714,10 +836,66 @@ components:
       required: [name, phone, governorate, aidType, description]
       properties:
         name: { type: string, minLength: 2 }
-        phone: { type: string, minLength: 7 }
+        phone: { type: string, pattern: "^(077|078|079)[0-9]{7}$" }
         governorate: { type: string, minLength: 1 }
         aidType: { type: string, minLength: 1 }
         description: { type: string, minLength: 5 }
+
+    ConfirmDeliveryInput:
+      type: object
+      required: [donationId]
+      properties:
+        donationId: { type: integer }
+
+    DonationTracking:
+      type: object
+      required: [id, amount, donationType, deliveredConfirmed, createdAt]
+      properties:
+        id: { type: integer }
+        amount: { type: integer }
+        donationType: { type: string }
+        message: { type: ["string", "null"] }
+        organizationName: { type: ["string", "null"] }
+        helpRequestId: { type: ["integer", "null"] }
+        helpRequestName: { type: ["string", "null"] }
+        deliveredConfirmed: { type: boolean }
+        deliveredConfirmedAt: { type: ["string", "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+
+    TrackedDonation:
+      type: object
+      required: [id, amount, donationType, deliveredConfirmed, createdAt]
+      properties:
+        id: { type: integer }
+        donorName: { type: ["string", "null"] }
+        amount: { type: integer }
+        donationType: { type: string }
+        message: { type: ["string", "null"] }
+        deliveredConfirmed: { type: boolean }
+        deliveredConfirmedAt: { type: ["string", "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+
+    HelpRequestTracking:
+      type: object
+      required: [id, name, governorate, aidType, description, status, createdAt, donations]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        governorate: { type: string }
+        aidType: { type: string }
+        description: { type: string }
+        status: { type: string }
+        createdAt: { type: string, format: date-time }
+        donations:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackedDonation"
+
+    LinkHelpRequestInput:
+      type: object
+      required: [helpRequestId]
+      properties:
+        helpRequestId: { type: integer }
 
     RegistrationRequest:
       type: object

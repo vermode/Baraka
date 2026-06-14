@@ -11,6 +11,7 @@ import rateLimit from "express-rate-limit";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { captureException } from "./lib/observability";
 import { loadUser } from "./middlewares/auth";
 
 const app: Express = express();
@@ -83,7 +84,19 @@ app.use(express.urlencoded({ extended: true, limit: "100kb" }));
 
 app.use(loadUser);
 
-// Rate-limit auth endpoints — they're the high-value brute-force targets.
+// Baseline rate limit for the whole API — a backstop against scraping and
+// blunt-force abuse on every endpoint, not just auth.
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 300,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Too many requests. Please try again later." },
+});
+app.use("/api", apiLimiter);
+
+// Rate-limit auth endpoints much harder — they're the high-value brute-force
+// targets. This stacks on top of the baseline limiter above.
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   // 20 attempts per IP per 15 minutes — generous enough for typos, tight enough
@@ -94,6 +107,37 @@ const authLimiter = rateLimit({
   message: { error: "Too many requests. Please try again later." },
 });
 app.use("/api/auth", authLimiter);
+
+// Public OTP-gated tracking routes carry a guessable-ish token in the URL, so
+// throttle them hard to make brute-forcing tracking codes impractical.
+const trackLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 40,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Too many requests. Please try again later." },
+});
+app.use("/api/track", trackLimiter);
+
+// Short-lived caching for public, non-personalized read endpoints. Express
+// already emits a (weak) ETag per response, so conditional GETs get a cheap 304;
+// this just lets browsers reuse a fresh copy for a few seconds. Never applied to
+// per-user data (notifications, /auth/me, etc.).
+const PUBLIC_CACHEABLE = [
+  "/api/stats",
+  "/api/organizations",
+  "/api/beneficiaries",
+  "/api/announcements",
+];
+app.use((req: Request, res: Response, next: NextFunction): void => {
+  if (
+    req.method === "GET" &&
+    PUBLIC_CACHEABLE.some((p) => req.path === p || req.path.startsWith(`${p}/`))
+  ) {
+    res.set("Cache-Control", "public, max-age=30, stale-while-revalidate=60");
+  }
+  next();
+});
 
 app.use("/api", router);
 
@@ -116,8 +160,9 @@ app.use((err: unknown, req: Request, res: Response, _next: NextFunction): void =
     res.status(413).json({ error: "Request body too large" });
     return;
   }
-  // Anything else is unexpected — log full detail, return generic.
-  logger.error({ err, reqId: (req as { id?: string }).id }, "unhandled error");
+  // Anything else is unexpected — report it (full detail to the log / error
+  // tracker) and return a generic message to the client.
+  captureException(err, { reqId: (req as { id?: string }).id });
   res.status(500).json({ error: "Internal server error" });
 });
 

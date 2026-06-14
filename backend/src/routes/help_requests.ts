@@ -7,6 +7,7 @@ import {
   UpdateHelpRequestParams,
 } from "@workspace/api-zod";
 import { requireAdmin } from "../middlewares/auth";
+import { generateOtp } from "../lib/otp";
 
 const router: IRouter = Router();
 
@@ -25,6 +26,9 @@ router.post("/help-requests", async (req, res): Promise<void> => {
       governorate: parsed.data.governorate,
       aidType: parsed.data.aidType,
       description: parsed.data.description,
+      // Issue the tracking code up front so the requester can immediately
+      // follow their request and confirm receipt of any donations.
+      otp: generateOtp(),
     })
     .$returningId();
   const [row] = await db
@@ -38,6 +42,23 @@ router.get("/help-requests", requireAdmin, async (_req, res): Promise<void> => {
   const rows = await db
     .select()
     .from(helpRequestsTable)
+    .orderBy(desc(helpRequestsTable.createdAt));
+  res.json(rows);
+});
+
+// Donatable, approved requests — sensitive fields (phone, OTP) are never exposed here.
+router.get("/help-requests/approved", async (_req, res): Promise<void> => {
+  const rows = await db
+    .select({
+      id: helpRequestsTable.id,
+      name: helpRequestsTable.name,
+      governorate: helpRequestsTable.governorate,
+      aidType: helpRequestsTable.aidType,
+      description: helpRequestsTable.description,
+      createdAt: helpRequestsTable.createdAt,
+    })
+    .from(helpRequestsTable)
+    .where(eq(helpRequestsTable.status, "approved"))
     .orderBy(desc(helpRequestsTable.createdAt));
   res.json(rows);
 });
@@ -62,10 +83,6 @@ router.patch("/help-requests/:id", requireAdmin, async (req, res): Promise<void>
     .select()
     .from(helpRequestsTable)
     .where(eq(helpRequestsTable.id, p.data.id));
-  if (!row) {
-    res.status(404).json({ error: "Help request not found" });
-    return;
-  }
   res.json(row);
 });
 

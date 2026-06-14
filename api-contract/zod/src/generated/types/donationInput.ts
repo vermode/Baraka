@@ -14,6 +14,7 @@ export interface DonationInput {
   amount: number;
   organizationId?: number;
   beneficiaryId?: number;
+  helpRequestId?: number;
   message?: string;
   donationType: DonationInputDonationType;
   paymentMethod?: DonationInputPaymentMethod;

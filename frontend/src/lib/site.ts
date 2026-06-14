@@ -8,9 +8,5 @@ export const SITE = {
   twitter: "https://x.com/baraka_maan",
   youtube: "https://youtube.com/@baraka.maan",
   tiktok: "https://tiktok.com/@baraka.maan",
-  supervisors: [
-    "د. عبدالله الشرعة — مشرف عام",
-    "أ. هدى المراعية — منسقة الجمعيات",
-    "م. أحمد الحسنات — مسؤول التقنية",
-  ],
+  supervisors: ["د. أنس ابو كركي"],
 };

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { notifyError, notifySuccess } from "@/lib/errors";
 import { Edit3, Plus, Search, Trash2, UserCircle2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -56,16 +56,16 @@ export function BeneficiariesTab() {
     try {
       if (editing) {
         await updateBen.mutateAsync({ id: editing.id, data: payload as never });
-        toast.success(isAr ? "تم التحديث" : "Updated");
+        notifySuccess(isAr ? "تم التحديث" : "Updated");
       } else {
         await createBen.mutateAsync({ data: payload as never });
-        toast.success(isAr ? "تم الإنشاء" : "Created");
+        notifySuccess(isAr ? "تم الإنشاء" : "Created");
       }
       qc.invalidateQueries({ queryKey: getListBeneficiariesQueryKey() });
       setDialogOpen(false);
       setEditing(null);
-    } catch {
-      toast.error(isAr ? "فشل" : "Failed");
+    } catch (err) {
+      notifyError(err, lang);
     }
   }
 
@@ -73,7 +73,7 @@ export function BeneficiariesTab() {
     if (!confirm(isAr ? "حذف هذا المستفيد؟" : "Delete?")) return;
     await deleteBen.mutateAsync({ id });
     qc.invalidateQueries({ queryKey: getListBeneficiariesQueryKey() });
-    toast.success(isAr ? "تم الحذف" : "Deleted");
+    notifySuccess(isAr ? "تم الحذف" : "Deleted");
   }
 
   return (

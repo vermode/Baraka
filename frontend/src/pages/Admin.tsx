@@ -13,7 +13,7 @@ import {
 
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/hooks/useAuth";
-import { AppHeader } from "@/components/layout/AppHeader";
+import { Header } from "@/components/layout/Header";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -87,7 +87,7 @@ export default function Admin() {
       className="min-h-screen bg-background text-foreground flex flex-col"
       dir={isAr ? "rtl" : "ltr"}
     >
-      <AppHeader />
+      <Header />
 
       <main className="flex-1 container mx-auto max-w-screen-2xl px-4 sm:px-8 py-8">
         <div className="mb-6 flex items-center gap-3">

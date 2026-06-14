@@ -22,15 +22,20 @@ import type {
 import type {
   Announcement,
   AnnouncementInput,
+  ApprovedHelpRequest,
   AuthUser,
   Beneficiary,
   BeneficiaryInput,
   BeneficiaryUpdate,
+  ConfirmDeliveryInput,
   Donation,
   DonationInput,
+  DonationTracking,
   HealthStatus,
   HelpRequest,
   HelpRequestInput,
+  HelpRequestTracking,
+  LinkHelpRequestInput,
   LoginInput,
   Notification,
   Organization,
@@ -1207,6 +1212,72 @@ export function useListMyDonations<TData = Awaited<ReturnType<typeof listMyDonat
 
 
 
+export const getLinkDonationHelpRequestUrl = (id: number,) => {
+
+
+
+
+  return `/api/donations/${id}/link-help-request`
+}
+
+export const linkDonationHelpRequest = async (id: number,
+    linkHelpRequestInput: LinkHelpRequestInput, options?: RequestInit): Promise<Donation> => {
+
+  return customFetch<Donation>(getLinkDonationHelpRequestUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      linkHelpRequestInput,)
+  }
+);}
+
+
+
+
+export const getLinkDonationHelpRequestMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof linkDonationHelpRequest>>, TError,{id: number;data: BodyType<LinkHelpRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof linkDonationHelpRequest>>, TError,{id: number;data: BodyType<LinkHelpRequestInput>}, TContext> => {
+
+const mutationKey = ['linkDonationHelpRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof linkDonationHelpRequest>>, {id: number;data: BodyType<LinkHelpRequestInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  linkDonationHelpRequest(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LinkDonationHelpRequestMutationResult = NonNullable<Awaited<ReturnType<typeof linkDonationHelpRequest>>>
+    export type LinkDonationHelpRequestMutationBody = BodyType<LinkHelpRequestInput>
+    export type LinkDonationHelpRequestMutationError = ErrorType<unknown>
+
+    export const useLinkDonationHelpRequest = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof linkDonationHelpRequest>>, TError,{id: number;data: BodyType<LinkHelpRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof linkDonationHelpRequest>>,
+        TError,
+        {id: number;data: BodyType<LinkHelpRequestInput>},
+        TContext
+      > => {
+      return useMutation(getLinkDonationHelpRequestMutationOptions(options));
+    }
+
 export const getListAnnouncementsUrl = () => {
 
 
@@ -1813,6 +1884,77 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(getCreateHelpRequestMutationOptions(options));
     }
 
+export const getListApprovedHelpRequestsUrl = () => {
+
+
+
+
+  return `/api/help-requests/approved`
+}
+
+export const listApprovedHelpRequests = async ( options?: RequestInit): Promise<ApprovedHelpRequest[]> => {
+
+  return customFetch<ApprovedHelpRequest[]>(getListApprovedHelpRequestsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListApprovedHelpRequestsQueryKey = () => {
+    return [
+    `/api/help-requests/approved`
+    ] as const;
+    }
+
+
+export const getListApprovedHelpRequestsQueryOptions = <TData = Awaited<ReturnType<typeof listApprovedHelpRequests>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listApprovedHelpRequests>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListApprovedHelpRequestsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listApprovedHelpRequests>>> = ({ signal }) => listApprovedHelpRequests({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listApprovedHelpRequests>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListApprovedHelpRequestsQueryResult = NonNullable<Awaited<ReturnType<typeof listApprovedHelpRequests>>>
+export type ListApprovedHelpRequestsQueryError = ErrorType<unknown>
+
+
+
+export function useListApprovedHelpRequests<TData = Awaited<ReturnType<typeof listApprovedHelpRequests>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listApprovedHelpRequests>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListApprovedHelpRequestsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
 export const getUpdateHelpRequestUrl = (id: number,) => {
 
 
@@ -1877,6 +2019,223 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getUpdateHelpRequestMutationOptions(options));
+    }
+
+export const getTrackDonationUrl = (otp: string,) => {
+
+
+
+
+  return `/api/track/donations/${otp}`
+}
+
+/**
+ * Public, OTP-gated read-only status of a single donation.
+ */
+export const trackDonation = async (otp: string, options?: RequestInit): Promise<DonationTracking> => {
+
+  return customFetch<DonationTracking>(getTrackDonationUrl(otp),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getTrackDonationQueryKey = (otp: string,) => {
+    return [
+    `/api/track/donations/${otp}`
+    ] as const;
+    }
+
+
+export const getTrackDonationQueryOptions = <TData = Awaited<ReturnType<typeof trackDonation>>, TError = ErrorType<unknown>>(otp: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof trackDonation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getTrackDonationQueryKey(otp);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof trackDonation>>> = ({ signal }) => trackDonation(otp, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(otp), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof trackDonation>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type TrackDonationQueryResult = NonNullable<Awaited<ReturnType<typeof trackDonation>>>
+export type TrackDonationQueryError = ErrorType<unknown>
+
+
+
+export function useTrackDonation<TData = Awaited<ReturnType<typeof trackDonation>>, TError = ErrorType<unknown>>(
+ otp: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof trackDonation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getTrackDonationQueryOptions(otp,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getTrackHelpRequestUrl = (otp: string,) => {
+
+
+
+
+  return `/api/track/help-requests/${otp}`
+}
+
+/**
+ * Public, OTP-gated view of a help request and the donations made to it.
+ */
+export const trackHelpRequest = async (otp: string, options?: RequestInit): Promise<HelpRequestTracking> => {
+
+  return customFetch<HelpRequestTracking>(getTrackHelpRequestUrl(otp),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getTrackHelpRequestQueryKey = (otp: string,) => {
+    return [
+    `/api/track/help-requests/${otp}`
+    ] as const;
+    }
+
+
+export const getTrackHelpRequestQueryOptions = <TData = Awaited<ReturnType<typeof trackHelpRequest>>, TError = ErrorType<unknown>>(otp: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof trackHelpRequest>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getTrackHelpRequestQueryKey(otp);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof trackHelpRequest>>> = ({ signal }) => trackHelpRequest(otp, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(otp), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof trackHelpRequest>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type TrackHelpRequestQueryResult = NonNullable<Awaited<ReturnType<typeof trackHelpRequest>>>
+export type TrackHelpRequestQueryError = ErrorType<unknown>
+
+
+
+export function useTrackHelpRequest<TData = Awaited<ReturnType<typeof trackHelpRequest>>, TError = ErrorType<unknown>>(
+ otp: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof trackHelpRequest>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getTrackHelpRequestQueryOptions(otp,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getConfirmDonationReceivedUrl = (otp: string,) => {
+
+
+
+
+  return `/api/track/help-requests/${otp}/confirm-delivery`
+}
+
+/**
+ * The help-request owner confirms (via their OTP) that a specific donation was received.
+ */
+export const confirmDonationReceived = async (otp: string,
+    confirmDeliveryInput: ConfirmDeliveryInput, options?: RequestInit): Promise<HelpRequestTracking> => {
+
+  return customFetch<HelpRequestTracking>(getConfirmDonationReceivedUrl(otp),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      confirmDeliveryInput,)
+  }
+);}
+
+
+
+
+export const getConfirmDonationReceivedMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmDonationReceived>>, TError,{otp: string;data: BodyType<ConfirmDeliveryInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmDonationReceived>>, TError,{otp: string;data: BodyType<ConfirmDeliveryInput>}, TContext> => {
+
+const mutationKey = ['confirmDonationReceived'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmDonationReceived>>, {otp: string;data: BodyType<ConfirmDeliveryInput>}> = (props) => {
+          const {otp,data} = props ?? {};
+
+          return  confirmDonationReceived(otp,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmDonationReceivedMutationResult = NonNullable<Awaited<ReturnType<typeof confirmDonationReceived>>>
+    export type ConfirmDonationReceivedMutationBody = BodyType<ConfirmDeliveryInput>
+    export type ConfirmDonationReceivedMutationError = ErrorType<unknown>
+
+    export const useConfirmDonationReceived = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmDonationReceived>>, TError,{otp: string;data: BodyType<ConfirmDeliveryInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof confirmDonationReceived>>,
+        TError,
+        {otp: string;data: BodyType<ConfirmDeliveryInput>},
+        TContext
+      > => {
+      return useMutation(getConfirmDonationReceivedMutationOptions(options));
     }
 
 export const getListRegistrationRequestsUrl = () => {

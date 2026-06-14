@@ -1,30 +1,48 @@
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useLocation } from "wouter";
 import {
-  Sun, Moon, Eye, EyeOff, ShieldCheck, ArrowRight, HandCoins, Building2,
+  Sun, Moon, Eye, EyeOff, ShieldCheck, ArrowRight, HandCoins, Building2, Check, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
+import { notifyError, notifySuccess, notifyInfo } from "@/lib/errors";
+import { EmailField } from "@/components/auth/EmailField";
+import { isKnownProvider } from "@/lib/email";
 import { ApiError } from "@workspace/api-client-react";
 
 const signupSchema = z
   .object({
     fullName: z.string().min(3),
     email: z.string().email(),
-    password: z.string().min(6),
+    password: z
+      .string()
+      .min(8)
+      .regex(/[A-Z]/)
+      .regex(/[0-9]/)
+      .regex(/[^A-Za-z0-9]/),
     confirmPassword: z.string(),
-    phone: z.string().optional(),
+    phone: z
+      .string()
+      .regex(/^(077|078|079)[0-9]{7}$/)
+      .optional()
+      .or(z.literal("")),
   })
   .refine((d) => d.password === d.confirmPassword, { path: ["confirmPassword"] });
+
+const PASSWORD_RULES = [
+  { test: (v: string) => v.length >= 8, ar: "8 أحرف على الأقل", en: "At least 8 characters" },
+  { test: (v: string) => /[A-Z]/.test(v), ar: "حرف كبير واحد على الأقل", en: "One uppercase letter" },
+  { test: (v: string) => /[0-9]/.test(v), ar: "رقم واحد على الأقل", en: "One number" },
+  { test: (v: string) => /[^A-Za-z0-9]/.test(v), ar: "رمز خاص واحد على الأقل", en: "One special character" },
+] as const;
 
 type SignupForm = z.infer<typeof signupSchema>;
 type AccountType = "donor" | "charity";
@@ -65,11 +83,26 @@ export default function Signup() {
 
   const {
     register,
+    control,
+    watch,
+    setError,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<SignupForm>({ resolver: zodResolver(signupSchema) });
 
+  const passwordValue = watch("password") ?? "";
+
   const onSubmit = async (data: SignupForm) => {
+    // Donors must use a known email provider; charities may use custom domains.
+    if (accountType !== "charity" && !isKnownProvider(data.email)) {
+      setError("email", {
+        type: "manual",
+        message: isAr
+          ? "يرجى استخدام مزود بريد معروف (مثل gmail.com)"
+          : "Please use a known email provider (e.g. gmail.com)",
+      });
+      return;
+    }
     try {
       await signup.mutateAsync({
         name: data.fullName,
@@ -78,19 +111,26 @@ export default function Signup() {
         phone: data.phone || undefined,
         accountType,
       });
-      toast.success(isAr ? "تم إنشاء حسابك بنجاح!" : "Account created successfully!");
+      notifySuccess(isAr ? "تم إنشاء حسابك بنجاح!" : "Account created successfully!");
       setTimeout(() => setLocation("/app"), 500);
     } catch (err: unknown) {
-      const msg =
-        err instanceof ApiError && err.status === 409
-          ? isAr ? "هذا البريد مسجل مسبقاً" : "Email already registered"
-          : isAr ? "حدث خطأ، حاول مرة أخرى" : "Something went wrong, please try again";
-      toast.error(msg);
+      if (err instanceof ApiError && err.status === 409) {
+        setError("email", {
+          type: "manual",
+          message: isAr ? "هذا البريد مستخدم مسبقاً" : "This email is already used.",
+        });
+      }
+      notifyError(err, lang, {
+        409: {
+          ar: "هذا البريد مستخدم مسبقاً",
+          en: "This email is already used.",
+        },
+      });
     }
   };
 
   const handleSocial = (provider: "google" | "facebook") => {
-    toast.info(
+    notifyInfo(
       isAr
         ? `تسجيل الدخول عبر ${provider === "google" ? "جوجل" : "فيسبوك"} قيد التفعيل. يرجى استخدام البريد الإلكتروني حالياً.`
         : `Sign in with ${provider === "google" ? "Google" : "Facebook"} is being activated. Please use email for now.`,
@@ -105,7 +145,7 @@ export default function Signup() {
     email: isAr ? "البريد الإلكتروني" : "Email Address",
     phone: isAr ? "رقم الهاتف (اختياري)" : "Phone (optional)",
     pass: isAr ? "كلمة المرور" : "Password",
-    passPh: isAr ? "٦ أحرف على الأقل..." : "At least 6 characters...",
+    passPh: isAr ? "٨ أحرف على الأقل..." : "At least 8 characters...",
     confirm: isAr ? "تأكيد كلمة المرور" : "Confirm Password",
     submit: isAr ? "إنشاء الحساب" : "Create Account",
     loginPrompt: isAr ? "لديك حساب بالفعل؟" : "Already have an account?",
@@ -159,7 +199,7 @@ export default function Signup() {
           <form onSubmit={handleSubmit(onSubmit)} noValidate className="rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-lg space-y-4">
             {/* Account type selector */}
             <div>
-              <Label className="text-sm font-medium block text-center mb-2">{L.accountTypeLabel}</Label>
+              <Label className="text-sm font-medium block text-start mb-2">{L.accountTypeLabel}</Label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -207,33 +247,68 @@ export default function Signup() {
             </div>
 
             <div>
-              <Label className="text-sm font-medium block text-center mb-1.5">
+              <Label className="text-sm font-medium block text-start mb-1.5">
                 {accountType === "charity" ? (isAr ? "اسم الجمعية" : "Charity name") : L.name}
               </Label>
-              <Input placeholder={L.namePh} className={`text-center ${errors.fullName ? "border-destructive" : ""}`} {...register("fullName")} />
+              <Input placeholder={L.namePh} className={`text-start ${errors.fullName ? "border-destructive" : ""}`} {...register("fullName")} />
             </div>
             <div>
-              <Label className="text-sm font-medium block text-center mb-1.5">{L.email}</Label>
-              <Input type="email" placeholder="example@email.com" className={`text-center ${errors.email ? "border-destructive" : ""}`} {...register("email")} />
+              <Label className="text-sm font-medium block text-start mb-1.5">{L.email}</Label>
+              <Controller
+                control={control}
+                name="email"
+                defaultValue=""
+                render={({ field }) => (
+                  <EmailField
+                    id="email"
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    isAr={isAr}
+                    hasError={!!errors.email}
+                  />
+                )}
+              />
+              {errors.email && (
+                <p className="mt-1 text-xs text-destructive text-start">
+                  {errors.email.message ?? (isAr ? "بريد إلكتروني غير صالح" : "Invalid email")}
+                </p>
+              )}
             </div>
             <div>
-              <Label className="text-sm font-medium block text-center mb-1.5">{L.phone}</Label>
-              <Input type="tel" placeholder="07XXXXXXXX" className="text-center" {...register("phone")} />
+              <Label className="text-sm font-medium block text-start mb-1.5">{L.phone}</Label>
+              <Input type="tel" dir="ltr" placeholder="07XXXXXXXX" className={`text-start ${errors.phone ? "border-destructive" : ""}`} {...register("phone")} />
+              {errors.phone && (
+                <p className="mt-1 text-xs text-destructive text-start">
+                  {isAr ? "يجب أن يبدأ بـ 077/078/079 ويتكون من 10 أرقام" : "Must start with 077/078/079 and be 10 digits"}
+                </p>
+              )}
             </div>
             <div>
-              <Label className="text-sm font-medium block text-center mb-1.5">{L.pass}</Label>
-              <div className="relative">
-                <Input type={showPassword ? "text" : "password"} placeholder={L.passPh} className={`text-center pr-10 pl-10 ${errors.password ? "border-destructive" : ""}`} {...register("password")} />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute top-1/2 -translate-y-1/2 right-3 text-muted-foreground">
+              <Label className="text-sm font-medium block text-start mb-1.5">{L.pass}</Label>
+              <div className="relative" dir="ltr">
+                <Input type={showPassword ? "text" : "password"} placeholder={L.passPh} className={`text-start pe-10 ${errors.password ? "border-destructive" : ""}`} {...register("password")} />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={isAr ? "إظهار كلمة المرور" : "Show password"} className="absolute top-1/2 -translate-y-1/2 end-3 text-muted-foreground hover:text-foreground">
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              <ul className="mt-2 space-y-1">
+                {PASSWORD_RULES.map((rule, i) => {
+                  const ok = rule.test(passwordValue);
+                  return (
+                    <li key={i} className={`flex items-center gap-1.5 text-[11px] ${ok ? "text-green-600" : "text-muted-foreground"}`}>
+                      {ok ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                      {isAr ? rule.ar : rule.en}
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
             <div>
-              <Label className="text-sm font-medium block text-center mb-1.5">{L.confirm}</Label>
-              <div className="relative">
-                <Input type={showConfirm ? "text" : "password"} className={`text-center pr-10 pl-10 ${errors.confirmPassword ? "border-destructive" : ""}`} {...register("confirmPassword")} />
-                <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute top-1/2 -translate-y-1/2 right-3 text-muted-foreground">
+              <Label className="text-sm font-medium block text-start mb-1.5">{L.confirm}</Label>
+              <div className="relative" dir="ltr">
+                <Input type={showConfirm ? "text" : "password"} className={`text-start pe-10 ${errors.confirmPassword ? "border-destructive" : ""}`} {...register("confirmPassword")} />
+                <button type="button" onClick={() => setShowConfirm(!showConfirm)} aria-label={isAr ? "إظهار كلمة المرور" : "Show password"} className="absolute top-1/2 -translate-y-1/2 end-3 text-muted-foreground hover:text-foreground">
                   {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>

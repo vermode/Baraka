@@ -73,7 +73,7 @@ export function Hero() {
               <span>{t('hero.ctaPrimary')}</span>
             </a>
           </Button>
-          <Button size="lg" variant="ghost" className="w-full sm:w-auto text-base gap-2 rounded-full px-8" asChild>
+          <Button size="lg" variant="outline" className="w-full sm:w-auto text-base gap-2 rounded-full px-8" asChild>
             <a href="#help">
               <HandCoins className="w-5 h-5" />
               <span>{t('hero.ctaSecondary')}</span>
