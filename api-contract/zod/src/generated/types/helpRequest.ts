@@ -15,6 +15,8 @@ export interface HelpRequest {
   description: string;
   status: string;
   /** @nullable */
+  otp?: string | null;
+  /** @nullable */
   adminNote?: string | null;
   /** @nullable */
   reviewedBy?: number | null;

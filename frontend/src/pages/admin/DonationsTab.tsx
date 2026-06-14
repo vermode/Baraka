@@ -1,13 +1,19 @@
 import { useMemo, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/hooks/useAuth";
-import { toast } from "sonner";
-import { Download, HandCoins, Search, Trophy } from "lucide-react";
+import { notifyError, notifySuccess } from "@/lib/errors";
+import { useQueryClient } from "@tanstack/react-query";
+import { BadgeCheck, Download, HandCoins, Link2, Search, Trophy } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-import { useListDonations } from "@workspace/api-client-react";
+import {
+  useListDonations,
+  useListApprovedHelpRequests,
+  useLinkDonationHelpRequest,
+  getListDonationsQueryKey,
+} from "@workspace/api-client-react";
 
 import { downloadCsv } from "./csv";
 
@@ -25,8 +31,23 @@ export function DonationsTab() {
   const donations = useListDonations({
     query: { enabled: user?.role === "admin" } as never,
   });
+  const approvedRequests = useListApprovedHelpRequests({
+    query: { enabled: user?.role === "admin" } as never,
+  });
+  const linkRequest = useLinkDonationHelpRequest();
+  const qc = useQueryClient();
 
   const [query, setQuery] = useState("");
+
+  async function link(donationId: number, helpRequestId: number) {
+    try {
+      await linkRequest.mutateAsync({ id: donationId, data: { helpRequestId } });
+      qc.invalidateQueries({ queryKey: getListDonationsQueryKey() });
+      notifySuccess(isAr ? "تم ربط التبرع بالحالة" : "Donation linked to request");
+    } catch (err) {
+      notifyError(err, lang);
+    }
+  }
 
   const list = (donations.data ?? []).filter((d) => {
     const q = query.trim().toLowerCase();
@@ -63,7 +84,7 @@ export function DonationsTab() {
       createdAt: d.createdAt,
     }));
     downloadCsv("donations.csv", rows);
-    toast.success(isAr ? "تم تصدير الملف" : "CSV downloaded");
+    notifySuccess(isAr ? "تم تصدير الملف" : "CSV downloaded");
   }
 
   return (
@@ -115,6 +136,41 @@ export function DonationsTab() {
                 )}
                 <div className="text-[11px] text-muted-foreground/70 mt-1">
                   {new Date(d.createdAt).toLocaleString(isAr ? "ar" : "en")}
+                </div>
+                <div className="flex flex-wrap items-center gap-2 mt-2">
+                  {d.deliveredConfirmed && (
+                    <span className="text-[11px] inline-flex items-center gap-1 text-green-600">
+                      <BadgeCheck className="h-3.5 w-3.5" />
+                      {isAr ? "تم تأكيد التوصيل" : "Delivery confirmed"}
+                    </span>
+                  )}
+                  {d.helpRequestId != null ? (
+                    <span className="text-[11px] inline-flex items-center gap-1 text-primary">
+                      <Link2 className="h-3.5 w-3.5" />
+                      {isAr ? `مرتبط بالحالة #${d.helpRequestId}` : `Linked to request #${d.helpRequestId}`}
+                    </span>
+                  ) : (
+                    (approvedRequests.data ?? []).length > 0 && (
+                      <select
+                        className="text-[11px] rounded-md border border-border bg-background px-2 py-1"
+                        defaultValue=""
+                        data-testid={`link-donation-${d.id}`}
+                        onChange={(e) => {
+                          const v = Number(e.target.value);
+                          if (v) link(d.id, v);
+                        }}
+                      >
+                        <option value="" disabled>
+                          {isAr ? "ربط بحالة..." : "Link to request..."}
+                        </option>
+                        {(approvedRequests.data ?? []).map((r) => (
+                          <option key={r.id} value={r.id}>
+                            #{r.id} — {r.name} ({r.governorate})
+                          </option>
+                        ))}
+                      </select>
+                    )
+                  )}
                 </div>
               </div>
               <div className="text-lg font-extrabold text-primary">

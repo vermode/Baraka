@@ -9,7 +9,7 @@
 export interface HelpRequestInput {
   /** @minLength 2 */
   name: string;
-  /** @minLength 7 */
+  /** @pattern ^(077|078|079)[0-9]{7}$ */
   phone: string;
   /** @minLength 1 */
   governorate: string;

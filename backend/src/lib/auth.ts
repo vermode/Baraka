@@ -95,8 +95,10 @@ export function signSession(userId: number): string {
   return `${payload}.${sign(payload)}`;
 }
 
-// Max session age (30 days) — must match the cookie maxAge in routes/auth.ts.
-const MAX_SESSION_AGE_SECONDS = 60 * 60 * 24 * 30;
+// Server-side max session age. The login cookie is a session cookie (cleared on
+// browser close); this is defense-in-depth so a stolen token can't outlive a
+// short window even if the browser is kept open.
+const MAX_SESSION_AGE_SECONDS = 60 * 60 * 12;
 
 export function verifySession(token: string | undefined): number | null {
   if (!token) return null;

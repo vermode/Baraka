@@ -1,10 +1,11 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { HandCoins, ShieldCheck, Clock, CheckCircle2 } from "lucide-react";
+import { HandCoins, ShieldCheck, Clock, CheckCircle2, KeyRound, Search } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { toast } from "sonner";
+import { notifyError, notifySuccess } from "@/lib/errors";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,7 +15,9 @@ import { useCreateHelpRequest } from "@workspace/api-client-react";
 
 const formSchema = z.object({
   name: z.string().min(2, "مطلوب"),
-  phone: z.string().min(10, "رقم هاتف غير صحيح"),
+  phone: z
+    .string()
+    .regex(/^(077|078|079)[0-9]{7}$/, "يجب أن يبدأ بـ 077/078/079 ويتكون من 10 أرقام"),
   governorate: z.string().min(1, "مطلوب"),
   aid: z.string().min(1, "مطلوب"),
   description: z.string().min(10, "يرجى كتابة وصف أوضح"),
@@ -24,6 +27,7 @@ export function HelpRequest() {
   const { t, lang } = useLanguage();
   const isAr = lang === "ar";
   const [submitted, setSubmitted] = useState(false);
+  const [trackingOtp, setTrackingOtp] = useState<string | null>(null);
   const mutation = useCreateHelpRequest();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -39,7 +43,7 @@ export function HelpRequest() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      await mutation.mutateAsync({
+      const created = await mutation.mutateAsync({
         data: {
           name: values.name,
           phone: values.phone,
@@ -48,11 +52,12 @@ export function HelpRequest() {
           description: values.description,
         },
       });
-      toast.success(t('help.successToast'));
+      notifySuccess(t('help.successToast'));
       form.reset();
+      setTrackingOtp(created.otp ?? null);
       setSubmitted(true);
-    } catch {
-      toast.error(isAr ? "تعذّر إرسال الطلب، حاول مرة أخرى" : "Could not submit, please try again");
+    } catch (err) {
+      notifyError(err, lang);
     }
   }
 
@@ -111,12 +116,31 @@ export function HelpRequest() {
             </h3>
             <p className="text-muted-foreground text-sm max-w-md mx-auto mb-4">
               {isAr
-                ? "طلبك قيد المراجعة من قِبَل فريق بركة. سيتواصل معك أحد ممثلينا خلال ٤٨ ساعة لتأكيد التفاصيل وتوصيلك بأنسب جمعية."
-                : "Your request is under review by the Baraka team. A representative will contact you within 48 hours to confirm details and connect you with the right charity."}
+                ? "طلبك قيد المراجعة من قِبَل فريق بركة. سيتواصل معك أحد ممثلينا خلال ٤٨ ساعة لتأكيد التفاصيل وتوصيلك بأنسب جمعية. احتفظ برمز التتبع أدناه لمتابعة التبرعات وتأكيد استلامها."
+                : "Your request is under review by the Baraka team. A representative will contact you within 48 hours to confirm details and connect you with the right charity. Keep the tracking code below to follow donations and confirm receipt."}
             </p>
-            <Button variant="outline" onClick={() => setSubmitted(false)}>
-              {isAr ? "إرسال طلب آخر" : "Submit another request"}
-            </Button>
+            {trackingOtp && (
+              <div className="max-w-sm mx-auto mb-4">
+                <div className="inline-flex items-center gap-2 font-mono text-lg tracking-widest bg-primary/10 text-primary rounded-xl px-4 py-3">
+                  <KeyRound className="h-5 w-5" />
+                  {trackingOtp}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {isAr ? "رمز التتبع الخاص بك — لا تشاركه إلا مع بركة." : "Your tracking code — keep it private."}
+                </p>
+                <Link href={`/track?type=request&otp=${trackingOtp}`}>
+                  <Button className="mt-3 gap-1.5">
+                    <Search className="h-4 w-4" />
+                    {isAr ? "تتبع طلبي" : "Track my request"}
+                  </Button>
+                </Link>
+              </div>
+            )}
+            <div>
+              <Button variant="outline" onClick={() => { setSubmitted(false); setTrackingOtp(null); }}>
+                {isAr ? "إرسال طلب آخر" : "Submit another request"}
+              </Button>
+            </div>
           </div>
         )}
 

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { notifyError, notifySuccess } from "@/lib/errors";
 import { BadgeCheck, Building2, Edit3, Plus, Search, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -55,16 +55,16 @@ export function OrganizationsTab() {
     try {
       if (editing) {
         await updateOrg.mutateAsync({ id: editing.id, data: payload as never });
-        toast.success(isAr ? "تم التحديث" : "Updated");
+        notifySuccess(isAr ? "تم التحديث" : "Updated");
       } else {
         await createOrg.mutateAsync({ data: payload as never });
-        toast.success(isAr ? "تم الإنشاء" : "Created");
+        notifySuccess(isAr ? "تم الإنشاء" : "Created");
       }
       qc.invalidateQueries({ queryKey: getListOrganizationsQueryKey() });
       setDialogOpen(false);
       setEditing(null);
-    } catch {
-      toast.error(isAr ? "فشل" : "Failed");
+    } catch (err) {
+      notifyError(err, lang);
     }
   }
 
@@ -72,7 +72,7 @@ export function OrganizationsTab() {
     if (!confirm(isAr ? "حذف هذه الجمعية؟" : "Delete this organization?")) return;
     await deleteOrg.mutateAsync({ id });
     qc.invalidateQueries({ queryKey: getListOrganizationsQueryKey() });
-    toast.success(isAr ? "تم الحذف" : "Deleted");
+    notifySuccess(isAr ? "تم الحذف" : "Deleted");
   }
 
   return (

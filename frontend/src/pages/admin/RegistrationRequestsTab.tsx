@@ -1,7 +1,7 @@
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { notifyError, notifySuccess } from "@/lib/errors";
 import {
   Building2,
   Check,
@@ -54,7 +54,7 @@ export function RegistrationRequestsTab() {
         data: { status, adminNote: note || undefined },
       });
       qc.invalidateQueries({ queryKey: getListRegistrationRequestsQueryKey() });
-      toast.success(
+      notifySuccess(
         status === "approved"
           ? isAr
             ? "تمت الموافقة"
@@ -63,8 +63,8 @@ export function RegistrationRequestsTab() {
             ? "تم الرفض"
             : "Rejected",
       );
-    } catch {
-      toast.error(isAr ? "فشل" : "Failed");
+    } catch (err) {
+      notifyError(err, lang);
     }
   }
 

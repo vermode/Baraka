@@ -16,11 +16,12 @@ export interface SignupInput {
   /** @maxLength 255 */
   email: string;
   /**
-     * @minLength 10
+     * @minLength 8
      * @maxLength 200
+     * @pattern ^(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,200}$
      */
   password: string;
-  /** @maxLength 32 */
+  /** @pattern ^(077|078|079)[0-9]{7}$ */
   phone?: string;
   accountType?: SignupInputAccountType;
 }

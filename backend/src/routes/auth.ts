@@ -8,14 +8,27 @@ import { logger } from "../lib/logger";
 const router: IRouter = Router();
 
 function setSessionCookie(res: import("express").Response, userId: number): void {
+  // No maxAge/expires => a session cookie that the browser clears when it closes.
   res.cookie(SESSION_COOKIE, signSession(userId), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
-    maxAge: 1000 * 60 * 60 * 24 * 30,
     path: "/",
   });
 }
+
+// Email providers allowed for regular (donor) accounts. Charities may use any
+// valid domain (e.g. their own organisation domain).
+const KNOWN_EMAIL_DOMAINS = new Set([
+  "gmail.com",
+  "yahoo.com",
+  "outlook.com",
+  "hotmail.com",
+  "live.com",
+  "icloud.com",
+  "proton.me",
+  "protonmail.com",
+]);
 
 function authUserPayload(user: typeof usersTable.$inferSelect) {
   return GetMeResponse.parse({
@@ -37,6 +50,14 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
   }
   const { name, email, password, phone, accountType } = parsed.data;
   const normalizedEmail = email.toLowerCase();
+  // Donors must use a known email provider; charities may use custom domains.
+  if (accountType !== "charity") {
+    const domain = normalizedEmail.split("@")[1] ?? "";
+    if (!KNOWN_EMAIL_DOMAINS.has(domain)) {
+      res.status(400).json({ error: "Please use a known email provider" });
+      return;
+    }
+  }
   const [existing] = await db
     .select()
     .from(usersTable)
@@ -87,6 +108,9 @@ router.post("/auth/logout", (_req, res): void => {
 });
 
 router.get("/auth/me", (req, res): void => {
+  // Never let the browser (or an intermediary) cache the authenticated user —
+  // it must always reflect the live session state.
+  res.setHeader("Cache-Control", "no-store");
   if (!req.user) {
     res.status(401).json({ error: "Not authenticated" });
     return;

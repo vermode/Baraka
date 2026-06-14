@@ -10,12 +10,15 @@
     "codegen": "pnpm --filter @workspace/api-spec run codegen",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm --filter @workspace/frontend --filter @workspace/backend --if-present run typecheck"
+    "typecheck": "pnpm run typecheck:libs && pnpm --filter @workspace/frontend --filter @workspace/backend --if-present run typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "private": true,
   "devDependencies": {
     "prettier": "^3.8.3",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "vitest": "^3.2.4"
   },
   "dependencies": {
     "@types/archiver": "^7.0.0",

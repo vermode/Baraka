@@ -11,6 +11,7 @@ import statsRouter from "./stats";
 import helpRequestsRouter from "./help_requests";
 import registrationRequestsRouter from "./registration_requests";
 import chatRouter from "./chat";
+import trackRouter from "./track";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(statsRouter);
 router.use(helpRequestsRouter);
 router.use(registrationRequestsRouter);
 router.use(chatRouter);
+router.use(trackRouter);
 
 export default router;

@@ -17,6 +17,8 @@ export interface Donation {
   organizationName?: string | null;
   /** @nullable */
   beneficiaryId?: number | null;
+  /** @nullable */
+  helpRequestId?: number | null;
   amount: number;
   /** @nullable */
   message?: string | null;
@@ -33,5 +35,10 @@ export interface Donation {
   cardName?: string | null;
   /** @nullable */
   itemDetails?: string | null;
+  /** @nullable */
+  otp?: string | null;
+  deliveredConfirmed: boolean;
+  /** @nullable */
+  deliveredConfirmedAt?: Date | null;
   createdAt: Date;
 }

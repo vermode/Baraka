@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { notifySuccess } from "@/lib/errors";
 import { Download, Search, Trash2, UserCircle2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -44,7 +44,7 @@ export function UsersTab() {
     if (!confirm(isAr ? "حذف هذا المستخدم؟" : "Delete user?")) return;
     await deleteUser.mutateAsync({ id });
     qc.invalidateQueries({ queryKey: getListUsersQueryKey() });
-    toast.success(isAr ? "تم الحذف" : "Deleted");
+    notifySuccess(isAr ? "تم الحذف" : "Deleted");
   }
 
   function exportCsv() {
@@ -57,7 +57,7 @@ export function UsersTab() {
       createdAt: u.createdAt,
     }));
     downloadCsv("users.csv", rows);
-    toast.success(isAr ? "تم تصدير الملف" : "CSV downloaded");
+    notifySuccess(isAr ? "تم تصدير الملف" : "CSV downloaded");
   }
 
   return (
