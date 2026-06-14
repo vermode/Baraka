@@ -13,6 +13,7 @@
     "db:migrate-from-postgres": "node --env-file-if-exists=../.env --import tsx ./src/db/migrate-from-postgres.ts"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@workspace/api-zod": "workspace:*",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",

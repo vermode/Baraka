@@ -2,14 +2,12 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Send } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import ReactMarkdown from "react-markdown";
 
 interface Message {
   id: number;
   from: "bot" | "user";
-  title?: string;
-  steps?: string[];
-  footer?: string;
-  text?: string;
+  text: string;
 }
 
 const QUICK_REPLIES_AR = [
@@ -26,103 +24,6 @@ const QUICK_REPLIES_EN = [
   "How do I request help?",
 ];
 
-type BotReply = { title: string; steps: string[]; footer?: string };
-
-const BOT_RESPONSES_AR: Record<string, BotReply> = {
-  "كيف أتبرع؟": {
-    title: "خطوات التبرع عبر بركة:",
-    steps: [
-      "افتح صفحة «الجمعيات» أو لوحة المتبرع، ثم اختر الجمعية أو الحالة التي تريد دعمها.",
-      "اضغط زر «تبرّع» المجاور للجمعية لفتح نافذة التبرع.",
-      "اختر نوع التبرع: مالي، طعام، ملابس، أو غير ذلك.",
-      "للتبرع المالي اختر طريقة الدفع: بطاقة ائتمان، محفظة (زين كاش / أورانج موني / أمنية كاش)، أو نقداً عند الاستلام.",
-      "أكّد المبلغ وأرسل التبرع — ستصلك إشعار وإيصال فوري.",
-    ],
-    footer: "كل دينار يصل للجمعية مباشرة، بدون أي عمولة.",
-  },
-  "كيف أسجل جمعيتي؟": {
-    title: "خطوات تسجيل جمعيتك:",
-    steps: [
-      "انزل إلى قسم «سجّل جمعيتك» في أسفل الصفحة الرئيسية.",
-      "املأ اسم الجمعية، المحافظة، الفئة، رقم تسجيل وزارة التنمية (إن وُجد)، ونبذة عن نشاطكم.",
-      "أدخل بيانات شخص التواصل: الاسم، رقم الهاتف، والبريد الإلكتروني.",
-      "اضغط «إرسال» — يصل الطلب لفريق المراجعة فوراً.",
-      "نتواصل معك خلال ٣–٥ أيام عمل لتأكيد التوثيق وتفعيل صفحة جمعيتك.",
-    ],
-    footer: "بعد التفعيل تستطيع إضافة الحملات والمستفيدين واستقبال التبرعات.",
-  },
-  "هل المنصة مجانية؟": {
-    title: "نعم، بركة مجانية بالكامل:",
-    steps: [
-      "لا توجد أي رسوم اشتراك على المتبرعين.",
-      "لا توجد أي رسوم اشتراك على الجمعيات.",
-      "لا نأخذ أي عمولة من مبلغ التبرع — ١٠٠٪ يصل للجمعية.",
-      "تكاليف التشغيل تُغطى من تبرعات داعمين ومتطوعين فقط.",
-    ],
-  },
-  "كيف أطلب مساعدة؟": {
-    title: "خطوات تقديم طلب مساعدة:",
-    steps: [
-      "انتقل إلى قسم «تحتاج مساعدة؟» في الصفحة الرئيسية.",
-      "أدخل اسمك ورقم هاتفك والمحافظة.",
-      "اختر نوع المساعدة المطلوبة: مالية، غذاء، طبية، تعليم، سكن، أو رعاية أيتام.",
-      "اكتب وصفاً واضحاً لحالتك حتى يستطيع الفريق توجيهك للجمعية المناسبة.",
-      "اضغط «إرسال» — يصل طلبك لفريق بركة وستظهر رسالة «الطلب قيد المراجعة».",
-      "يتواصل معك أحد ممثلينا خلال ٤٨ ساعة لتأكيد التفاصيل.",
-    ],
-    footer: "بياناتك سرّية ولا يطّلع عليها إلا فريق المراجعة المعتمد.",
-  },
-};
-
-const BOT_RESPONSES_EN: Record<string, BotReply> = {
-  "How do I donate?": {
-    title: "How to donate on Baraka:",
-    steps: [
-      "Open the «Charities» page or your donor dashboard and pick a charity or case.",
-      "Click the «Donate» button next to the charity to open the donation dialog.",
-      "Choose donation type: money, food, clothes, or other.",
-      "For money donations, pick a payment method: credit card, mobile wallet (Zain Cash / Orange Money / Umniah Cash), or cash on pickup.",
-      "Confirm the amount and submit — you'll get an instant notification and receipt.",
-    ],
-    footer: "Every JOD reaches the charity directly — zero commission.",
-  },
-  "How do I register my charity?": {
-    title: "How to register your charity:",
-    steps: [
-      "Scroll down to the «Register Your Charity» section on the homepage.",
-      "Fill in your organization name, governorate, category, ministry registration number (if available), and a short description.",
-      "Provide the contact person's name, phone number, and email.",
-      "Click «Submit» — the request reaches the review team instantly.",
-      "We contact you within 3–5 business days to verify documents and activate your charity page.",
-    ],
-    footer: "Once activated, you can add campaigns, beneficiaries, and receive donations.",
-  },
-  "Is the platform free?": {
-    title: "Yes, Baraka is 100% free:",
-    steps: [
-      "No subscription fees for donors.",
-      "No subscription fees for charities.",
-      "We take zero commission — 100% of your donation reaches the charity.",
-      "Operating costs are covered by sponsor donations and volunteers only.",
-    ],
-  },
-  "How do I request help?": {
-    title: "How to submit a help request:",
-    steps: [
-      "Go to the «Need Help?» section on the homepage.",
-      "Enter your name, phone number, and governorate.",
-      "Pick the type of aid you need: financial, food, medical, education, housing, or orphan care.",
-      "Write a clear description of your situation so the team can match you to the right charity.",
-      "Click «Submit» — your request reaches the Baraka team and a «Request under review» message appears.",
-      "A representative contacts you within 48 hours to confirm the details.",
-    ],
-    footer: "Your data is confidential and only seen by the approved review team.",
-  },
-};
-
-const FALLBACK_AR = "شكراً لتواصلك! للاستفسارات الأخرى يمكنك التواصل مع فريق بركة عبر البريد الإلكتروني. هل يمكنني مساعدتك بشيء آخر؟";
-const FALLBACK_EN = "Thanks for reaching out! For other inquiries you can contact the Baraka team via email. Can I help you with something else?";
-
 export function ChatBot() {
   const { lang } = useLanguage();
   const isAr = lang === "ar";
@@ -130,7 +31,7 @@ export function ChatBot() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [typing, setTyping] = useState(false);
+  const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -142,32 +43,68 @@ export function ChatBot() {
     if (open && messages.length === 0) {
       setMessages([{ id: Date.now(), from: "bot", text: welcomeMsg }]);
     }
-  }, [open]);
+  }, [open, messages.length, welcomeMsg]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, typing]);
+    const lastMessage = messages[messages.length - 1];
+    // Scroll to bottom when user sends a message or when loading starts (typing indicator).
+    // DO NOT scroll to bottom when a bot message arrives, so the user can read from the top.
+    if (loading || (lastMessage && lastMessage.from === "user") || messages.length <= 1) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, loading]);
 
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 300);
   }, [open]);
 
-  const sendMessage = (text: string) => {
-    if (!text.trim()) return;
+  const sendMessage = async (text: string) => {
+    if (!text.trim() || loading) return;
+
     const userMsg: Message = { id: Date.now(), from: "user", text };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
-    setTyping(true);
+    setLoading(true);
 
-    setTimeout(() => {
-      const responses = isAr ? BOT_RESPONSES_AR : BOT_RESPONSES_EN;
-      const reply = responses[text];
-      const botMsg: Message = reply
-        ? { id: Date.now() + 1, from: "bot", title: reply.title, steps: reply.steps, footer: reply.footer }
-        : { id: Date.now() + 1, from: "bot", text: isAr ? FALLBACK_AR : FALLBACK_EN };
+    try {
+      // Map previous messages to Gemini's expected format, excluding the initial welcome message if we want to save tokens, 
+      // but it's simpler to just map all. 
+      // Note: we'll just map the conversation history.
+      const history = messages.filter(m => m.text !== welcomeMsg).map(m => ({
+        role: m.from === "bot" ? "model" : "user",
+        parts: [{ text: m.text }]
+      }));
+
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          history,
+          message: text,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch response");
+      }
+
+      const data = await res.json();
+      
+      const botMsg: Message = { id: Date.now() + 1, from: "bot", text: data.response };
       setMessages((prev) => [...prev, botMsg]);
-      setTyping(false);
-    }, 900);
+    } catch (error) {
+      console.error(error);
+      const errorMsg: Message = { 
+        id: Date.now() + 1, 
+        from: "bot", 
+        text: isAr ? "عذراً، حدث خطأ في الاتصال. يرجى المحاولة لاحقاً." : "Sorry, a connection error occurred. Please try again later."
+      };
+      setMessages((prev) => [...prev, errorMsg]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const quickReplies = isAr ? QUICK_REPLIES_AR : QUICK_REPLIES_EN;
@@ -238,29 +175,12 @@ export function ChatBot() {
                   <div
                     className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
                       msg.from === "user"
-                        ? "bg-primary text-primary-foreground rounded-br-sm"
-                        : "bg-muted text-foreground rounded-bl-sm"
+                        ? "bg-primary text-primary-foreground rounded-br-sm whitespace-pre-wrap"
+                        : "bg-muted text-foreground rounded-bl-sm prose prose-sm dark:prose-invert max-w-none prose-p:leading-snug prose-p:my-1 prose-ul:my-1 prose-li:my-0.5"
                     }`}
                   >
-                    {msg.steps ? (
-                      <div className="space-y-1.5">
-                        {msg.title && <p className="font-bold text-foreground">{msg.title}</p>}
-                        <ol className={`space-y-1.5 ${isAr ? "pr-1" : "pl-1"}`}>
-                          {msg.steps.map((step, i) => (
-                            <li key={i} className="flex gap-2 items-start">
-                              <span className="shrink-0 h-5 w-5 rounded-full bg-primary/20 text-primary text-[11px] font-bold flex items-center justify-center mt-0.5">
-                                {i + 1}
-                              </span>
-                              <span className="flex-1">{step}</span>
-                            </li>
-                          ))}
-                        </ol>
-                        {msg.footer && (
-                          <p className="text-xs text-muted-foreground pt-1 border-t border-border/40 mt-2">
-                            {msg.footer}
-                          </p>
-                        )}
-                      </div>
+                    {msg.from === "bot" ? (
+                      <ReactMarkdown>{msg.text}</ReactMarkdown>
                     ) : (
                       msg.text
                     )}
@@ -268,7 +188,7 @@ export function ChatBot() {
                 </div>
               ))}
 
-              {typing && (
+              {loading && (
                 <div className={`flex ${isAr ? "justify-end" : "justify-start"}`}>
                   <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1">
                     {[0, 1, 2].map((i) => (
@@ -283,7 +203,7 @@ export function ChatBot() {
                 </div>
               )}
 
-              {showQuickReplies && !typing && (
+              {showQuickReplies && !loading && (
                 <div className={`flex flex-wrap gap-2 pt-1 ${isAr ? "justify-end" : "justify-start"}`}>
                   {quickReplies.map((q) => (
                     <button
@@ -308,13 +228,14 @@ export function ChatBot() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
                 placeholder={isAr ? "اكتب رسالتك..." : "Type your message..."}
+                disabled={loading}
                 data-testid="input-chatbot-message"
-                className="flex-1 bg-muted rounded-xl px-3.5 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none border border-transparent focus:border-primary/40 transition-colors"
+                className="flex-1 bg-muted rounded-xl px-3.5 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none border border-transparent focus:border-primary/40 transition-colors disabled:opacity-50"
                 dir={isAr ? "rtl" : "ltr"}
               />
               <button
                 onClick={() => sendMessage(input)}
-                disabled={!input.trim() || typing}
+                disabled={!input.trim() || loading}
                 data-testid="btn-chatbot-send"
                 className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-primary-foreground disabled:opacity-40 hover:bg-primary/90 transition-colors shrink-0"
               >
